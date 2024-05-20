@@ -1,0 +1,3 @@
+[submodule "menetrendek-api"]
+	path = menetrendek-api
+	url = https://github.com/creeperg16/menetrendek-api
