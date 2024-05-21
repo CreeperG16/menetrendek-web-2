@@ -2,11 +2,9 @@
 
 import {
   Station,
-  searchStations,
   searchRoutes,
   Route,
   RouteInfo,
-  BaseRouteInfoPart,
   FelszallasRouteInfoPart,
   RoutePart,
   AtszallasRouteInfoPart,
@@ -42,8 +40,10 @@ export default function Home() {
     }
 
     setLoadingReq(true);
-    const result = await searchStations(query, { maxResults: 10 });
-    setAutocompleteValues(result);
+    const urlEncoded = encodeURI(query);
+    const { result } = await fetch(`/api/search-stations?q=${urlEncoded}`).then((res) => res.json());
+    const stations = result.map((s: { [key: string]: any }) => Station.fromJson(s));
+    setAutocompleteValues(stations);
     setLoadingReq(false);
 
     const value = selectedField === SelectedField.From ? fromContent : toContent;
@@ -98,8 +98,22 @@ export default function Home() {
 
     if (selectedFrom === null || selectedTo === null) return; // TODO
     setLoadingReq(true);
-    const result = await searchRoutes(selectedFrom, selectedTo);
-    setAvailableRoutes(result);
+
+    //const result = await searchRoutes(selectedFrom, selectedTo);
+    const { result } = await fetch("/api/search-routes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: selectedFrom.json(),
+        to: selectedTo.json(),
+      }),
+    }).then((res) => res.json());
+
+    const routes = result.map((r: { [key: string]: any }) => Route.fromJson(r));
+
+    setAvailableRoutes(routes);
     setLoadingReq(false);
   }
 
@@ -122,16 +136,27 @@ export default function Home() {
 
         return (
           <div className="flex flex-col space-y-5 items-center p-2">
-            <h1>{routePart.from.stationName}{routePart.from.bay && " [" + routePart.from.bay + "]"}</h1>
+            <h1>
+              {routePart.from.stationName}
+              {routePart.from.bay && " [" + routePart.from.bay + "]"}
+            </h1>
             <h1>{infoPart.name}</h1>
             <h1>{routePart.to.stationName}</h1>
             {/*{infoPart.expectedDeparture.toLocaleTimeString(undefined, { timeStyle: "short" })} {infoPart.stationName} {infoPart.name}*/}
           </div>
         );
       case "átszállás":
-        return <>{part.muvelet} - {part.stationName}</>;
+        return (
+          <>
+            {part.muvelet} - {part.stationName}
+          </>
+        );
       case "leszállás":
-        return <>{part.muvelet} - {part.stationName}</>;
+        return (
+          <>
+            {part.muvelet} - {part.stationName}
+          </>
+        );
     }
   }
 
@@ -166,7 +191,9 @@ export default function Home() {
             onChange={(ev) => setToContent(ev.target.value)}
             value={toContent}
           />
-          <button className="m-1 bg-slate-950 p-1 hover:scale-[1.05] hover:bg-slate-800" onClick={() => searchForRoutes()}>
+          <button
+            className="m-1 bg-slate-950 p-1 hover:scale-[1.05] hover:bg-slate-800"
+            onClick={() => searchForRoutes()}>
             Go!
           </button>
         </div>
@@ -206,14 +233,18 @@ export default function Home() {
                     {route.from.stationName}
                     {route.from.bay && ` [${route.from.bay}]`}
                   </p>
-                  <p className="flex-1 text-right">{route.departure.toLocaleTimeString(undefined, { timeStyle: "short" })}</p>
+                  <p className="flex-1 text-right">
+                    {route.departure.toLocaleTimeString(undefined, { timeStyle: "short" })}
+                  </p>
                 </div>
                 <div className="flex flex-row w-full">
                   <p className="flex-1">
                     {route.to.stationName}
                     {route.to.bay && ` [${route.to.bay}]`}
                   </p>
-                  <p className="flex-1 text-right">{route.arrival.toLocaleTimeString(undefined, { timeStyle: "short" })}</p>
+                  <p className="flex-1 text-right">
+                    {route.arrival.toLocaleTimeString(undefined, { timeStyle: "short" })}
+                  </p>
                 </div>
               </div>
             ))}
